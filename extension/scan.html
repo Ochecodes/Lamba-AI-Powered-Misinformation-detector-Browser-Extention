@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fake News Detector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 300px;
+      padding: 15px;
+      margin: 0;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      position: relative;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    #closeBtn {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      color: #666;
+    }
+
+    #closeBtn:hover {
+      color: #f00;
+    }
+
+    h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #1976d2;
+      font-size: 18px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      resize: vertical;
+    }
+
+    button {
+      padding: 6px 12px;
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #125ca1;
+    }
+
+    #output {
+      background: #f4f4f4;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 13px;
+      white-space: pre-wrap;
+      border-radius: 5px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+    }
+
+    #loader {
+      display: none;
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+  <span id="closeBtn">&times;</span>
+  <h3>📰 Fake News Detector</h3>
+  <textarea id="textInput" rows="4" placeholder="Paste or auto-filled news headline or article..."></textarea>
+  <button id="scanBtn">🔍 Scan News</button>
+  <div id="loader">Scanning...</div>
+  <pre id="output"></pre>
+
+  <script src="scan.js"></script>
+</body>
+</html>

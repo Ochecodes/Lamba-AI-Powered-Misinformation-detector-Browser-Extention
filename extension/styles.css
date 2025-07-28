@@ -1,0 +1,87 @@
+:root {
+  --bg-color: #f0f4f8;
+  --text-color: #111;
+  --card-bg: #fff;
+  --btn-bg: #0078d7;
+  --btn-hover: #005fa3;
+  --border-radius: 10px;
+  --transition-speed: 0.3s;
+}
+
+[data-theme="dark"] {
+  --bg-color: #1f1f1f;
+  --text-color: #f5f5f5;
+  --card-bg: #2c2c2c;
+  --btn-bg: #444;
+  --btn-hover: #666;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  padding: 16px;
+  width: 320px;
+  transition: background var(--transition-speed), color var(--transition-speed);
+}
+
+.container {
+  text-align: center;
+}
+
+h2 {
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+button {
+  background-color: var(--btn-bg);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  margin: 4px;
+  transition: background-color var(--transition-speed);
+}
+
+button:hover {
+  background-color: var(--btn-hover);
+}
+
+.theme-toggle {
+  float: right;
+  font-size: 12px;
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--text-color);
+}
+
+.card {
+  background-color: var(--card-bg);
+  padding: 12px;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin: 12px 0;
+  text-align: left;
+  animation: fadeIn 0.5s ease-in-out;
+  transition: background-color var(--transition-speed), color var(--transition-speed);
+}
+
+.positive {
+  color: #2ecc71;
+}
+
+.negative {
+  color: #e74c3c;
+}
+
+.neutral {
+  color: #95a5a6;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
