@@ -1,4 +1,4 @@
-# 🧠 Fake News Detector
+# Lamba
 
 A full-stack Chrome extension + FastAPI backend that:
 - Scans articles in real time
@@ -6,7 +6,7 @@ A full-stack Chrome extension + FastAPI backend that:
 - Analyzes sentiment
 - Verifies if the source is trusted
 
-## 🧩 Chrome Extension
+## Browser Extension
 
 ### How to Use
 1. Go to `chrome://extensions`
@@ -14,7 +14,7 @@ A full-stack Chrome extension + FastAPI backend that:
 3. Click **Load Unpacked** → Select `extension/` folder
 4. Click the extension icon → Click **Analyze**
 
-## 🖥 Backend (FastAPI + ML Model)
+## Backend (FastAPI + ML Model)
 
 ### Setup Locally
 ```bash
