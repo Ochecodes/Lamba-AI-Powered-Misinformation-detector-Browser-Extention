@@ -46,5 +46,5 @@ document.getElementById("scanBtn").addEventListener("click", async () => {
 document.getElementById("toggleTheme").addEventListener("click", () => {
   const html = document.documentElement;
   const current = html.getAttribute("data-theme");
-  html.setAttribute("data-theme", current === "dark" ? "dark" : "light");
+  html.setAttribute("data-theme", current === "light" ? "dark" : "light");
 });
