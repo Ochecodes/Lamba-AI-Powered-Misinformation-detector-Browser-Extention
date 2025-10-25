@@ -20,7 +20,7 @@ document.getElementById("scanBtn").addEventListener("click", async () => {
       const data = await response.json();
 
       document.getElementById("fakeNewsCard").innerHTML = `
-        <h4>🧠 Fake News Detection</h4>
+        <h4>Lamba: Realtime News Verification</h4>
         ${data.is_fake ? "<span class='negative'>⚠️ Likely Fake</span>" : "<span class='positive'>✅ Seems Legit</span>"}
       `;
 
@@ -46,5 +46,5 @@ document.getElementById("scanBtn").addEventListener("click", async () => {
 document.getElementById("toggleTheme").addEventListener("click", () => {
   const html = document.documentElement;
   const current = html.getAttribute("data-theme");
-  html.setAttribute("data-theme", current === "light" ? "dark" : "light");
+  html.setAttribute("data-theme", current === "dark" ? "dark" : "light");
 });
