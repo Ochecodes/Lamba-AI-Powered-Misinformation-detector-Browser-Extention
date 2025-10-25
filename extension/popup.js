@@ -20,7 +20,7 @@ document.getElementById("scanBtn").addEventListener("click", async () => {
       const data = await response.json();
 
       document.getElementById("fakeNewsCard").innerHTML = `
-        <h4>Lamba: Realtime News Verification</h4>
+        <h4>Realtime News Verification</h4>
         ${data.is_fake ? "<span class='negative'>⚠️ Likely Fake</span>" : "<span class='positive'>✅ Seems Legit</span>"}
       `;
 
