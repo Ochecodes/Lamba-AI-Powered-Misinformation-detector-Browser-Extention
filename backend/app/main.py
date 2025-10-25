@@ -78,9 +78,16 @@ import os
 import requests
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+import os
 from dotenv import load_dotenv
-load_dotenv()
 
+# load .env located at backend/.env
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+
+CLAIMBUSTER_API_KEY = os.getenv("CLAIMBUSTER_API_KEY")
+# ... other config values ...
 # === Initialize FastAPI App === #
 app = FastAPI()
 
@@ -93,8 +100,7 @@ app.add_middleware(
 )
 
 # === ClaimBuster API Key (Set via Environment Variable) === #
-CLAIMBUSTER_API_KEY = os.getenv("
-                                CLAIMBUSTER_API_KEY")
+CLAIMBUSTER_API_KEY = os.getenv("CLAIMBUSTER_API_KEY")
 
 # === ClaimBuster Misinformation Analysis Endpoint === #
 @app.post("/analyze/")
