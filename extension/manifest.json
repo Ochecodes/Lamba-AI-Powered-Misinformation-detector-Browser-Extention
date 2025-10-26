@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Fake News Detector",
+  "name": "Lamba-Verify News on the Go",
   "version": "1.0",
-  "description": "Detects fake news and analyzes content sentiment in real-time.",
+  "description": "Analyzes News content and Detects Misinformation in Realtime.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["<all_urls>"],
   "action": {

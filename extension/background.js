@@ -5,7 +5,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         url: chrome.runtime.getURL("scan.html"),
         type: "popup",
         width: 350,
-        height: 500
+        height: 350
       });
     });
   }

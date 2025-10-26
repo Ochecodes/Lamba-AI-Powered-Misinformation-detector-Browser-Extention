@@ -88,3 +88,9 @@ window.addEventListener("DOMContentLoaded", async () => {
       : error.message}</p>`;
   }
 });
+// Theme toggle
+document.getElementById("toggleTheme").addEventListener("click", () => {
+  const html = document.documentElement;
+  const current = html.getAttribute("data-theme");
+  html.setAttribute("data-theme", current === "dark" ? "light" : "dark");
+});
