@@ -48,49 +48,42 @@
 //     performScan();
 //   }
 // });
-window.addEventListener("DOMContentLoaded", async () => {
-  const output = document.getElementById("output");
-  const params = new URLSearchParams(window.location.search);
-  const scannedText = params.get("text") || "";
 
-  // Lightweight safety check
-  if (!scannedText.trim()) {
-    output.innerHTML = `<p class="error">No content found for analysis.</p>`;
-    return;
-  }
+window.addEventListener("message", async (event) => {
+  const data = event.data;
+  if (!data || data.type !== "scan") return;
 
-  // Limit text length for faster ClaimBuster response
-  const truncatedText = scannedText.slice(0, 1200);
+  const statusEl = document.getElementById("status");
+  const loadingEl = document.getElementById("loading");
+
+  loadingEl.style.display = "block";
+  statusEl.style.display = "none";
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 7000); // timeout after 7s
+    let { backendData, text } = data;
 
-    const response = await fetch("http://127.0.0.1:8000/analyze/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: truncatedText }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    const result = await response.json();
-
-    if (result.rating) {
-      output.innerHTML = `<div class="result">${result.rating}</div>`;
-    } else {
-      output.innerHTML = `<p class="error">⚠️ ${result.error || "Unable to analyze content."}</p>`;
+    // If backend data not provided (fallback)
+    if (!backendData) {
+      const response = await fetch("http://localhost:8000/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      backendData = await response.json();
     }
-  } catch (error) {
-    output.innerHTML = `<p class="error">🚫 ${error.name === "AbortError"
-      ? "Request timed out. Try again."
-      : error.message}</p>`;
+
+    // Get rating info
+    const result = backendData.final_assessment || "Unable to assess.";
+    const level = backendData.level || "low";
+
+    // Style based on result
+    statusEl.className = level;
+    statusEl.textContent = result;
+
+    loadingEl.style.display = "none";
+    statusEl.style.display = "block";
+  } catch (err) {
+    loadingEl.textContent = "Error loading analysis.";
+    console.error("Scan error:", err);
   }
-});
-// Theme toggle
-document.getElementById("toggleTheme").addEventListener("click", () => {
-  const html = document.documentElement;
-  const current = html.getAttribute("data-theme");
-  html.setAttribute("data-theme", current === "dark" ? "light" : "dark");
 });
