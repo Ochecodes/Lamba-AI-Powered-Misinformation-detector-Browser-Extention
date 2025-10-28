@@ -1,6 +1,5 @@
 // === contentScript.js ===
 
-// Create a scan icon beside news headlines or article titles
 function createScanIcon(text) {
   const icon = document.createElement("img");
   icon.src = chrome.runtime.getURL("icon.png");
@@ -15,35 +14,65 @@ function createScanIcon(text) {
     event.preventDefault();
     event.stopPropagation();
 
-    // Create the iframe popup
     const iframe = document.createElement("iframe");
     iframe.src = chrome.runtime.getURL("scan.html");
     iframe.loading = "lazy";
-    iframe.style.position = "fixed";
-    iframe.style.bottom = "20px";
-    iframe.style.right = "20px";
-    iframe.style.width = "320px";
-    iframe.style.height = "180px";
-    iframe.style.border = "1px solid #ccc";
-    iframe.style.borderRadius = "10px";
-    iframe.style.boxShadow = "0 2px 10px rgba(0,0,0,0.25)";
-    iframe.style.zIndex = "999999";
-    iframe.style.background = "#fff";
-    iframe.style.transition = "opacity 0.25s ease";
-    iframe.style.opacity = "0";
-
+    Object.assign(iframe.style, {
+      position: "fixed",
+      bottom: "20px",
+      right: "20px",
+      width: "320px",
+      height: "180px",
+      border: "1px solid #ccc",
+      borderRadius: "10px",
+      boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
+      zIndex: "999999",
+      background: "#fff",
+      transition: "opacity 0.25s ease",
+      opacity: "0"
+    });
     document.body.appendChild(iframe);
-
-    // Fade-in animation
     setTimeout(() => (iframe.style.opacity = "1"), 50);
 
-    // === Pre-fetch backend result in parallel ===
-    let backendData = null;
+    // Add close button
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "×";
+    Object.assign(closeBtn.style, {
+      position: "fixed",
+      bottom: "190px",
+      right: "25px",
+      background: "#fff",
+      border: "1px solid #ccc",
+      borderRadius: "50%",
+      width: "24px",
+      height: "24px",
+      fontSize: "16px",
+      lineHeight: "20px",
+      textAlign: "center",
+      cursor: "pointer",
+      zIndex: "1000000"
+    });
+    closeBtn.addEventListener("click", () => {
+      iframe.remove();
+      closeBtn.remove();
+    });
+    document.body.appendChild(closeBtn);
+
+    // Send initial "analyzing" state to iframe
+    iframe.onload = () => {
+      iframe.contentWindow.postMessage(
+        { type: "scan", backendData: { final_assessment: "⏳ Analyzing article..." } },
+        "*"
+      );
+    };
+
+    // Perform backend request (with timeout)
     const backendURL = "http://127.0.0.1:8000/analyze/";
+    let backendData = null;
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
+      const timeout = setTimeout(() => controller.abort(), 7000); // 7s timeout
 
       const response = await fetch(backendURL, {
         method: "POST",
@@ -53,87 +82,49 @@ function createScanIcon(text) {
       });
 
       clearTimeout(timeout);
-
-      if (response.ok) {
-        backendData = await response.json();
-      } else {
-        backendData = { final_assessment: "⚠️ Unable to assess this article." };
-        console.warn("Backend response not OK:", response.status);
-      }
-    } catch (error) {
-      backendData = { final_assessment: "⚠️ Unable to connect to backend." };
-      console.error("Backend fetch failed:", error);
+      backendData = response.ok
+        ? await response.json()
+        : { final_assessment: "⚠️ Unable to analyze article." };
+    } catch (err) {
+      backendData = { final_assessment: "❌ Connection timed out." };
+      console.error("Backend fetch error:", err);
     }
 
-    // Send data to iframe after it's loaded
-    iframe.onload = () => {
-      iframe.contentWindow.postMessage(
-        { type: "scan", text, backendData },
-        "*"
-      );
-    };
-
-    // Add close (×) button
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "×";
-    closeBtn.style.position = "fixed";
-    closeBtn.style.bottom = "190px";
-    closeBtn.style.right = "25px";
-    closeBtn.style.background = "#fff";
-    closeBtn.style.border = "1px solid #ccc";
-    closeBtn.style.borderRadius = "50%";
-    closeBtn.style.width = "24px";
-    closeBtn.style.height = "24px";
-    closeBtn.style.fontSize = "16px";
-    closeBtn.style.lineHeight = "20px";
-    closeBtn.style.textAlign = "center";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.style.zIndex = "1000000";
-    closeBtn.addEventListener("click", () => {
-      iframe.remove();
-      closeBtn.remove();
-    });
-
-    document.body.appendChild(closeBtn);
+    // Always update iframe (even if timeout)
+    setTimeout(() => {
+      iframe.contentWindow.postMessage({ type: "scan", backendData }, "*");
+    }, 500);
   });
 
   return icon;
 }
 
-// === Detect article vs homepage ===
 function isLikelyArticlePage() {
-  const metaOgType = document.querySelector('meta[property="og:type"]');
-  const pathname = window.location.pathname;
-  const articleTag = document.querySelector("article");
+  const meta = document.querySelector('meta[property="og:type"]');
+  const article = document.querySelector("article");
   return (
-    (metaOgType && metaOgType.content === "article") ||
-    pathname.length > 40 ||
-    articleTag !== null
+    (meta && meta.content === "article") ||
+    window.location.pathname.length > 40 ||
+    article !== null
   );
 }
 
-// === Extract full article text ===
 function extractFullArticleText() {
   const article = document.querySelector("article");
   if (article) return article.innerText.trim();
-
   const main = document.querySelector("main");
   if (main) return main.innerText.trim();
-
   const body = document.body.innerText.trim();
   return body.length > 500 ? body : null;
 }
 
-// === Extract potential news headlines on homepages ===
 function extractHeadlines() {
-  const headlineSelectors = "h1, h2, h3, .headline, .news-title, .story-title";
-  const headlines = document.querySelectorAll(headlineSelectors);
+  const selectors = "h1, h2, h3, .headline, .news-title, .story-title";
+  const headlines = document.querySelectorAll(selectors);
   const scanned = new Set();
 
   headlines.forEach((el) => {
     const text = el.innerText.trim();
-
-    // Filter out navigation, ads, or too-short headings
     if (
       !text ||
       text.length < 10 ||
@@ -141,8 +132,6 @@ function extractHeadlines() {
       /(login|subscribe|advert|menu|read more)/i.test(text)
     )
       return;
-
-    // Only attach one icon per unique headline
     if (!el.querySelector("img.fake-news-icon")) {
       const icon = createScanIcon(text);
       icon.classList.add("fake-news-icon");
@@ -152,26 +141,20 @@ function extractHeadlines() {
   });
 }
 
-// === Add icon beside the main article headline ===
 function addIconToArticleHeadline() {
-  const headlineEl =
+  const h1 =
     document.querySelector("article h1") ||
     document.querySelector("main h1") ||
     document.querySelector("h1");
-
-  if (headlineEl && !headlineEl.querySelector("img.fake-news-icon")) {
-    const fullText = extractFullArticleText();
-    if (!fullText) return;
-
-    const icon = createScanIcon(fullText);
-    icon.classList.add("fake-news-icon");
-    headlineEl.appendChild(icon);
+  if (h1 && !h1.querySelector("img.fake-news-icon")) {
+    const text = extractFullArticleText();
+    if (text) {
+      const icon = createScanIcon(text);
+      icon.classList.add("fake-news-icon");
+      h1.appendChild(icon);
+    }
   }
 }
 
-// === MAIN EXECUTION ===
-if (isLikelyArticlePage()) {
-  addIconToArticleHeadline();
-} else {
-  extractHeadlines();
-}
+if (isLikelyArticlePage()) addIconToArticleHeadline();
+else extractHeadlines();
