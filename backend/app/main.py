@@ -80,10 +80,74 @@
 #     return result
 
 
+# import os
+# import requests
+# from fastapi import FastAPI, Request
+# from fastapi.middleware.cors import CORSMiddleware
+# from pathlib import Path
+# from dotenv import load_dotenv
+
+# # === Load Environment Variables === #
+# env_path = Path(__file__).resolve().parent.parent / ".env"
+# load_dotenv(dotenv_path=env_path)
+
+# CLAIMBUSTER_API_KEY = os.getenv("CLAIMBUSTER_API_KEY")
+
+# # === Initialize FastAPI App === #
+# app = FastAPI()
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],  # Allow Chrome Extension access
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
+
+# # === ClaimBuster Misinformation Analysis Endpoint === #
+# @app.post("/analyze/")
+# async def analyze(request: Request):
+#     data = await request.json()
+#     text = data.get("text", "")
+
+#     if not text.strip():
+#         return {"error": "No text provided for analysis."}
+
+#     try:
+#         # --- Call ClaimBuster API --- #
+#         cb_url = f"https://idir.uta.edu/claimbuster/api/v2/score/text/{text}"
+#         headers = {"x-api-key": CLAIMBUSTER_API_KEY}
+#         response = requests.get(cb_url, headers=headers)
+#         cb_data = response.json()
+
+#         # --- Extract score --- #
+#         cb_score = cb_data.get("results", [{}])[0].get("score", None)
+
+#         if cb_score is None:
+#             return {"error": "Could not retrieve ClaimBuster score."}
+
+#         score = round(cb_score, 2)
+
+#         # --- Interpret score and classify --- #
+#         if score >= 0.75:
+#             final_status = "Highly trustworthy content ✅"
+#         elif score >= 0.5:
+#             final_status = "Possibly misleading ⚠️"
+#         else:
+#             final_status = "Potentially false ❌"
+
+#         # --- Return only the rating --- #
+#         return {"rating": final_status}
+
+#     except Exception as e:
+#         return {"error": str(e)} 
+
 import os
 import requests
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -104,41 +168,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # === ClaimBuster Misinformation Analysis Endpoint === #
 @app.post("/analyze/")
 async def analyze(request: Request):
-    data = await request.json()
-    text = data.get("text", "")
-
-    if not text.strip():
-        return {"error": "No text provided for analysis."}
-
     try:
+        data = await request.json()
+        text = data.get("text", "")
+        url = data.get("url", "")
+
+        if not text.strip():
+            return JSONResponse(content={"error": "No text provided for analysis."}, status_code=400)
+
         # --- Call ClaimBuster API --- #
         cb_url = f"https://idir.uta.edu/claimbuster/api/v2/score/text/{text}"
         headers = {"x-api-key": CLAIMBUSTER_API_KEY}
-        response = requests.get(cb_url, headers=headers)
+        response = requests.get(cb_url, headers=headers, timeout=10)
+
+        # --- Validate ClaimBuster response --- #
+        if response.status_code != 200:
+            return JSONResponse(
+                content={"error": f"ClaimBuster API failed with status {response.status_code}"},
+                status_code=response.status_code,
+            )
+
         cb_data = response.json()
+        results = cb_data.get("results", [])
 
-        # --- Extract score --- #
-        cb_score = cb_data.get("results", [{}])[0].get("score", None)
+        if not results or "score" not in results[0]:
+            return JSONResponse(
+                content={"error": "Invalid response from ClaimBuster."},
+                status_code=500,
+            )
 
-        if cb_score is None:
-            return {"error": "Could not retrieve ClaimBuster score."}
+        # --- Extract and interpret score --- #
+        cb_score = round(results[0]["score"], 2)
 
-        score = round(cb_score, 2)
-
-        # --- Interpret score and classify --- #
-        if score >= 0.75:
+        if cb_score >= 0.75:
             final_status = "Highly trustworthy content ✅"
-        elif score >= 0.5:
+        elif cb_score >= 0.5:
             final_status = "Possibly misleading ⚠️"
         else:
             final_status = "Potentially false ❌"
 
-        # --- Return only the rating --- #
-        return {"rating": final_status}
+        # ✅ Return clean JSON response
+        return JSONResponse(
+            content={
+                "rating": final_status,
+                "score": cb_score,
+                "source_url": url,
+            },
+            status_code=200
+        )
 
     except Exception as e:
-        return {"error": str(e)}
+        return JSONResponse(
+            content={"error": f"Internal Server Error: {str(e)}"},
+            status_code=500
+        )
