@@ -1,218 +1,100 @@
-// window.addEventListener("DOMContentLoaded", () => {
-//   const params = new URLSearchParams(window.location.search);
-//   const scannedText = params.get("text") || "";
+// scan.js (robust: accept prefetch, else fetch backend, show rating only)
+// keep UI structure in scan.html unchanged
 
-//   const input = document.getElementById("textInput");
-//   const button = document.getElementById("scanBtn");
-//   const output = document.getElementById("output");
-//   const closeBtn = document.getElementById("closeBtn");
-//   const loader = document.getElementById("loader");
-
-//   input.value = scannedText;
-
-//   // Close button logic
-//   closeBtn.addEventListener("click", () => {
-//     const iframe = window.frameElement;
-//     if (iframe && iframe.parentNode) {
-//       iframe.parentNode.removeChild(iframe);
-//     }
-//   });
-
-//   const performScan = async () => {
-//     const text = input.value;
-//     const url = window.location.href;
-
-//     output.textContent = "";
-//     loader.style.display = "block";
-
-//     try {
-//       const response = await fetch("http://127.0.0.1:8000/analyze/", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ text, url })
-//       });
-
-//       const result = await response.json();
-//       loader.style.display = "none";
-//       output.textContent = JSON.stringify(result, null, 2);
-//     } catch (err) {
-//       loader.style.display = "none";
-//       output.textContent = "❌ Error: " + err.message;
-//     }
-//   };
-
-//   button.addEventListener("click", performScan);
-
-//   // Auto-trigger scan if text is passed in
-//   if (scannedText) {
-//     performScan();
-//   }
-// });
-
-// window.addEventListener("message", async (event) => {
-//   const data = event.data;
-//   if (!data || data.type !== "scan") return;
-
-//   const statusEl = document.getElementById("status");
-//   const loadingEl = document.getElementById("loading");
-
-//   loadingEl.style.display = "block";
-//   statusEl.style.display = "none";
-
-//   try {
-//     let { backendData, text } = data;
-
-//     // If backend data not provided (fallback)
-//     if (!backendData) {
-//       const response = await fetch("http://localhost:8000/analyze", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ text }),
-//       });
-//       backendData = await response.json();
-//     }
-
-//     // Get rating info
-//     const result = backendData.final_assessment || "Unable to assess.";
-//     const level = backendData.level || "low";
-
-//     // Style based on result
-//     statusEl.className = level;
-//     statusEl.textContent = result;
-
-//     loadingEl.style.display = "none";
-//     statusEl.style.display = "block";
-//   } catch (err) {
-//     loadingEl.textContent = "Error loading analysis.";
-//     console.error("Scan error:", err);
-//   }
-// });
-
-// window.addEventListener("DOMContentLoaded", async () => {
-//   const params = new URLSearchParams(window.location.search);
-//   const scannedText = params.get("text") || "";
-//   const output = document.getElementById("output");
-//   const scanBtn = document.getElementById("scanBtn");
-//   const inputField = document.getElementById("textInput");
-
-//   // Keep animations and design intact — just update backend logic
-//   if (inputField) inputField.value = scannedText;
-//   if (!scannedText) {
-//     output.textContent = "⚠️ No article text found.";
-//     return;
-//   }
-
-//   async function analyzeText() {
-//     output.textContent = "⏳ Analyzing article...";
-//     try {
-//       const response = await fetch("http://127.0.0.1:8000/analyze/", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ text: scannedText, url: window.location.href }),
-//       });
-
-//       if (!response.ok) throw new Error("Backend error");
-
-//       const result = await response.json();
-
-//       // Display only the rating (final_assessment)
-//       if (result.final_assessment) {
-//         output.innerHTML = `<span class="rating-text">${result.final_assessment}</span>`;
-//       } else {
-//         output.innerHTML = `<span class="error-text">⚠️ Could not determine credibility.</span>`;
-//       }
-//     } catch (err) {
-//       console.error("Backend connection failed:", err);
-//       output.innerHTML = `<span class="error-text">❌ Unable to connect to backend.</span>`;
-//     }
-//   }
-
-//   // Automatically analyze if text was passed from contentScript
-//   await analyzeText();
-
-//   // Also trigger analyze when the scan button is clicked
-//   if (scanBtn) {
-//     scanBtn.addEventListener("click", analyzeText);
-//   }
-// });
-
-window.addEventListener("DOMContentLoaded", async () => {
-  const params = new URLSearchParams(window.location.search);
-  const scannedText = params.get("text") || "";
+(function(){
   const output = document.getElementById("output");
-  const scanBtn = document.getElementById("scanBtn");
-  const inputField = document.getElementById("textInput");
+  const params = new URLSearchParams(window.location.search);
+  const passedText = params.get("text") || "";
 
-  // Keep your frontend design — this just improves performance
-  if (inputField) inputField.value = scannedText;
-
-  // Add a subtle shimmer/animation while waiting (optional)
+  // Show immediate short feedback
   function showLoading() {
-    output.innerHTML = `<div class="loading">
-        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        <p>Analyzing article...</p>
-      </div>`;
+    if (!output) return;
+    output.textContent = "⏳ Analyzing article...";
   }
 
-  // Reusable backend request logic
-  async function fetchRating(text) {
+  function showResult(ratingText) {
+    if (!output) return;
+    output.textContent = ratingText;
+  }
+
+  function showError(msg) {
+    if (!output) return;
+    output.textContent = msg;
+  }
+
+  // Try to use backendData sent by content script (prefetch). The content script posts message type "claimbuster_prefetch"
+  let prefetchHandled = false;
+  window.addEventListener("message", async (event) => {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000); // ⏱️ auto-cancel after 8s
-
-      const response = await fetch("http://127.0.0.1:8000/analyze/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, url: window.location.href }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
-      if (!response.ok) throw new Error("Backend error");
-
-      const result = await response.json();
-      return result;
+      const data = event.data;
+      if (!data) return;
+      if (data.type === "claimbuster_prefetch") {
+        // backendData may be null if prefetch failed
+        prefetchHandled = true;
+        const backendData = data.backendData;
+        if (backendData && (backendData.final_assessment || backendData.rating || backendData.result)) {
+          // Accept multiple field names to be resilient
+          const rating = backendData.final_assessment || backendData.rating || backendData.result;
+          showResult(rating);
+        } else {
+          // If prefetch returned nothing useful, fallback to local fetch
+          console.log("[scan.js] prefetch returned no final_assessment — calling backend directly...");
+          await callBackendAndShow(passedText);
+        }
+      }
     } catch (err) {
-      console.warn("Backend request failed:", err.message);
-      return { error: "⚠️ Unable to reach backend service." };
+      console.error("[scan.js] message handler error:", err);
     }
-  }
+  }, false);
 
-  // Main analyze function
-  async function analyzeText() {
-    if (!scannedText) {
-      output.textContent = "⚠️ No article text found.";
+  // If no prefetch message arrives in a short time, fetch directly
+  async function callBackendAndShow(textToSend) {
+    if (!textToSend || textToSend.trim().length === 0) {
+      showError("⚠️ No text provided for analysis.");
       return;
     }
 
     showLoading();
 
-    // 🔹 Preload the backend call as soon as possible (non-blocking)
-    const backendPromise = fetchRating(scannedText);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(()=> controller.abort(), 8000);
+      const resp = await fetch("http://127.0.0.1:8000/analyze/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textToSend }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
 
-    // 🔹 Meanwhile, allow UI animations to render first
-    await new Promise((r) => setTimeout(r, 300));
+      if (!resp.ok) {
+        showError("❌ Backend error: " + resp.status);
+        return;
+      }
 
-    const result = await backendPromise;
-
-    if (result.error) {
-      output.innerHTML = `<p class="error-text">${result.error}</p>`;
-      return;
-    }
-
-    // 🔹 Display only the final rating (styled text)
-    if (result.final_assessment) {
-      output.innerHTML = `<div class="rating-container">
-          <p class="rating-text">${result.final_assessment}</p>
-        </div>`;
-    } else {
-      output.innerHTML = `<p class="error-text">⚠️ Unable to determine credibility.</p>`;
+      const json = await resp.json();
+      if (json.final_assessment) {
+        showResult(json.final_assessment);
+      } else if (json.rating) {
+        showResult(json.rating);
+      } else {
+        showError("⚠️ Unable to determine credibility.");
+      }
+    } catch (err) {
+      if (err.name === "AbortError") showError("⏱️ Analysis timed out.");
+      else showError("🚫 Error contacting backend.");
+      console.error("[scan.js] callBackendAndShow error:", err);
     }
   }
 
-  // Auto-run when contentScript passes article text
-  if (scannedText) analyzeText();
-
-  // Also allow manual re-scan
-  if (scanBtn) scanBtn.addEventListener("click", analyzeText);
-});
+  // Kickoff: wait briefly for prefetch message, else fetch
+  (async function init(){
+    showLoading();
+    // give contentScript a short window (600ms) to post the prefetch payload
+    await new Promise(r => setTimeout(r, 600));
+    if (!prefetchHandled) {
+      // if contentScript didn't prefetch or post, call backend directly
+      await callBackendAndShow(passedText);
+    }
+  })();
+})();
