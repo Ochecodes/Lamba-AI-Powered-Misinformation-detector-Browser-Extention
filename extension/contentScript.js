@@ -1,142 +1,101 @@
-// contentScript.js (verbose, prefetch + postMessage)
-function createScanIcon(text) {
+function createScanIcon(articleText) {
   const icon = document.createElement("img");
   icon.src = chrome.runtime.getURL("icon.png");
-  icon.style.width = "20px";
-  icon.style.height = "20px";
-  icon.style.cursor = "pointer";
-  icon.style.marginLeft = "8px";
-  icon.style.verticalAlign = "middle";
-  icon.title = "Scan for misinformation";
+  icon.className = "fake-news-icon";
+  icon.style.cssText = `
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    margin-left: 6px;
+    vertical-align: middle;
+  `;
 
-  icon.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  icon.addEventListener("click", async () => {
+    console.log("[FND] Icon clicked. Extracting and analyzing...");
 
-    console.log("[FND] Icon clicked. Preparing iframe and backend prefetch...");
-
-    // Create iframe with text in query param (so scan.js always has access)
-    const encoded = encodeURIComponent(text);
+    // 1. Show iframe immediately
     const iframe = document.createElement("iframe");
-    iframe.src = chrome.runtime.getURL("scan.html") + "?text=" + encoded;
-    iframe.loading = "lazy";
-    Object.assign(iframe.style, {
-      position: "fixed",
-      bottom: "20px",
-      right: "20px",
-      width: "360px",
-      height: "320px",
-      border: "1px solid #ccc",
-      borderRadius: "10px",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-      zIndex: "999999",
-      background: "#fff",
-      opacity: "0",
-      transition: "opacity 0.18s ease"
-    });
+    iframe.src = chrome.runtime.getURL("scan.html");
+    iframe.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 280px;
+      height: 180px;
+      border: none;
+      z-index: 999999;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      background: white;
+      transition: opacity 0.3s ease;
+      opacity: 0;
+    `;
     document.body.appendChild(iframe);
-    setTimeout(()=> iframe.style.opacity = "1", 40);
+    setTimeout(() => (iframe.style.opacity = "1"), 50);
 
-    // Close button
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "×";
-    Object.assign(closeBtn.style, {
-      position: "fixed",
-      bottom: (20 + 320 + 8) + "px",
-      right: "24px",
-      width: "28px",
-      height: "28px",
-      borderRadius: "50%",
-      border: "1px solid #ccc",
-      background: "#fff",
-      fontSize: "18px",
-      cursor: "pointer",
-      zIndex: "1000000"
-    });
-    closeBtn.addEventListener("click", () => { iframe.remove(); closeBtn.remove(); });
-    document.body.appendChild(closeBtn);
+    // 2. Send "loading" message
+    iframe.onload = () => {
+      iframe.contentWindow.postMessage({ status: "loading" }, "*");
+    };
 
-    // Prefetch backend result in parallel (best-effort)
-    let backendData = null;
+    // 3. Fetch from backend
     try {
-      console.log("[FND] Prefetching backend...");
-      const controller = new AbortController();
-      const timeoutId = setTimeout(()=> controller.abort(), 8000);
-      const resp = await fetch("http://127.0.0.1:8000/analyze/", {
+      console.log("[FND] Sending article text to backend...");
+      const response = await fetch("http://127.0.0.1:8000/analyze/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-        signal: controller.signal
+        body: JSON.stringify({ text: articleText, url: window.location.href }),
       });
-      clearTimeout(timeoutId);
-      if (resp.ok) {
-        backendData = await resp.json();
-        console.log("[FND] Prefetch backendData:", backendData);
-      } else {
-        console.warn("[FND] Prefetch response not ok:", resp.status);
-      }
+
+      const data = await response.json();
+      console.log("[FND] Backend response:", data);
+
+      // 4. Send result to iframe
+      iframe.contentWindow.postMessage({ status: "done", data }, "*");
     } catch (err) {
-      console.warn("[FND] Prefetch failed:", err && err.message ? err.message : err);
+      console.error("[FND] Backend fetch error:", err);
+      iframe.contentWindow.postMessage({
+        status: "error",
+        error: "Failed to reach backend. Please try again.",
+      }, "*");
     }
 
-    // When iframe is ready, post backendData (if available)
-    iframe.addEventListener("load", () => {
-      try {
-        console.log("[FND] iframe loaded — posting backendData to iframe (may be null)...");
-        iframe.contentWindow.postMessage({ type: "claimbuster_prefetch", backendData }, "*");
-      } catch (err) {
-        console.warn("[FND] postMessage failed:", err);
-      }
-    });
+    // 5. Add close button
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "×";
+    closeBtn.style.cssText = `
+      position: fixed;
+      bottom: 180px;
+      right: 25px;
+      background: #222;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      font-size: 18px;
+      z-index: 1000000;
+    `;
+    closeBtn.onclick = () => {
+      iframe.remove();
+      closeBtn.remove();
+    };
+    document.body.appendChild(closeBtn);
   });
 
   return icon;
 }
 
-// helpers to detect page type and attach icons (keep your existing detection logic)
-function isLikelyArticlePage() {
-  const meta = document.querySelector('meta[property="og:type"]');
-  const article = document.querySelector("article");
-  return (meta && meta.content === "article") || article !== null || window.location.pathname.length > 40;
+function extractArticleText() {
+  const article = document.querySelector("article") || document.querySelector("main");
+  return article ? article.innerText.trim() : document.body.innerText.trim();
 }
 
-function extractFullArticleText() {
-  const article = document.querySelector("article");
-  if (article) return article.innerText.trim();
-  const main = document.querySelector("main");
-  if (main) return main.innerText.trim();
-  const body = document.body.innerText.trim();
-  return body.length > 200 ? body : null;
+// Insert icon beside main headline
+const headline = document.querySelector("h1");
+if (headline && !headline.querySelector(".fake-news-icon")) {
+  const text = extractArticleText();
+  const icon = createScanIcon(text);
+  headline.appendChild(icon);
 }
-
-function addIconToArticleHeadline() {
-  const headlineEl = document.querySelector("article h1") || document.querySelector("main h1") || document.querySelector("h1");
-  if (!headlineEl) return;
-  const text = extractFullArticleText();
-  if (!text) return;
-  if (!headlineEl.querySelector("img.fake-news-icon")) {
-    const icon = createScanIcon(text);
-    icon.classList.add("fake-news-icon");
-    headlineEl.appendChild(icon);
-  }
-}
-
-function extractHeadlines() {
-  const sel = "h1, h2, h3, .headline, .news-title, .story-title";
-  const nodes = document.querySelectorAll(sel);
-  const seen = new Set();
-  nodes.forEach(el => {
-    const text = el.innerText.trim();
-    if (!text || text.length < 10 || seen.has(text)) return;
-    if (!el.querySelector("img.fake-news-icon")) {
-      const icon = createScanIcon(text);
-      icon.classList.add("fake-news-icon");
-      el.appendChild(icon);
-      seen.add(text);
-    }
-  });
-}
-
-// main
-if (isLikelyArticlePage()) addIconToArticleHeadline();
-else extractHeadlines();
