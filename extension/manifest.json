@@ -1,36 +1,57 @@
 {
   "manifest_version": 3,
-  "name": "Lamba-Verify News on the Go",
-  "version": "1.0",
-  "description": "Analyzes News content and Detects Misinformation in Realtime.",
-  "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["<all_urls>"],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icon.png",
-      "48": "icon.png",
-      "128": "icon.png"
-    }
+  "name": "AI-Powered Fake News Detector",
+  "description": "Detect fake or misleading news in real time using AI-powered analysis.",
+  "version": "1.0.0",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
+
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "storage"
+  ],
+
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "https://*/*",
+    "http://*/*"
+  ],
+
   "background": {
     "service_worker": "background.js"
   },
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
   },
+
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ],
       "js": ["contentScript.js"],
       "run_at": "document_idle"
     }
   ],
+
   "web_accessible_resources": [
     {
-      "resources": ["scan.html", "scan.js", "icon.png"],
+      "resources": [
+        "scan.html",
+        "icons/scan.png",
+        "style.css"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

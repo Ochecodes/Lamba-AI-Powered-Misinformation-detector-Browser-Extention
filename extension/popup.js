@@ -1,43 +1,57 @@
+// popup.js
 document.getElementById("scanBtn").addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
+  // Extract page text via content script
   chrome.scripting.executeScript(
     {
       target: { tabId: tab.id },
       func: () => document.body.innerText,
     },
     async (results) => {
-      const text = results[0].result;
-      const response = await fetch("http://127.0.0.1:8000/analyze/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Client-Time": new Date().toISOString()
-        },
-        body: JSON.stringify({ text: text, url: tab.url }),
-      });
+      const text = results[0]?.result || "";
+      if (!text || text.length < 20) {
+        alert("No readable text found on this page.");
+        return;
+      }
 
-      const data = await response.json();
+      // 🔹 Send message to background.js instead of direct fetch
+      chrome.runtime.sendMessage(
+        { action: "analyzeText", text, url: tab.url },
+        (data) => {
+          if (!data) return;
 
-      document.getElementById("fakeNewsCard").innerHTML = `
-        <h4>Realtime News Verification</h4>
-        ${data.is_fake ? "<span class='negative'>⚠️ Likely Fake</span>" : "<span class='positive'>✅ Seems Legit</span>"}
-      `;
+          if (data.error) {
+            document.getElementById("fakeNewsCard").innerHTML = `
+              <h4>Realtime News Verification</h4>
+              <span class='negative'>⚠️ ${data.error}</span>
+            `;
+            return;
+          }
 
-      const sentimentClass =
-        data.sentiment.label === "POSITIVE" ? "positive" :
-        data.sentiment.label === "NEGATIVE" ? "negative" : "neutral";
+          document.getElementById("fakeNewsCard").innerHTML = `
+            <h4>Realtime News Verification</h4>
+            ${data.rating.includes("false") ? 
+              "<span class='negative'>⚠️ Likely Fake</span>" : 
+              "<span class='positive'>✅ Seems Legit</span>"}
+          `;
 
-      document.getElementById("sentimentCard").innerHTML = `
-        <h4>📊 Sentiment</h4>
-        <span class="${sentimentClass}">${data.sentiment.label}</span><br>
-        Score: ${data.sentiment.score.toFixed(2)}
-      `;
+          const sentimentClass =
+            data.sentiment?.label === "POSITIVE" ? "positive" :
+            data.sentiment?.label === "NEGATIVE" ? "negative" : "neutral";
 
-      document.getElementById("sourceCard").innerHTML = `
-        <h4>🔎 Source Verification</h4>
-        ${data.source_verified ? "<span class='positive'>✅ Verified</span>" : "<span class='negative'>❌ Not Verified</span>"}
-      `;
+          document.getElementById("sentimentCard").innerHTML = `
+            <h4>📊 Sentiment</h4>
+            <span class="${sentimentClass}">${data.sentiment?.label || "NEUTRAL"}</span><br>
+            Score: ${data.sentiment?.score?.toFixed(2) || "0.00"}
+          `;
+
+          document.getElementById("sourceCard").innerHTML = `
+            <h4>🔎 Source Verification</h4>
+            ${data.source_verified ? "<span class='positive'>✅ Verified</span>" : "<span class='negative'>❌ Not Verified</span>"}
+          `;
+        }
+      );
     }
   );
 });
