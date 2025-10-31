@@ -1,18 +1,27 @@
 {
   "manifest_version": 3,
   "name": "AI-Powered Fake News Detector",
-  "description": "Detect fake or misleading news in real time using AI-powered analysis.",
+  "description": "Analyzes online news content to detect potentially fake or misleading information using AI.",
   "version": "1.0.0",
   "icons": {
-    "16": "icons.png",
-    "48": "icons.png",
-    "128": "icons.png"
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+
+  "action": {
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    },
+    "default_popup": "popup.html",
+    "default_title": "AI Fake News Detector"
   },
 
   "permissions": [
     "activeTab",
     "scripting",
-    "tabs",
     "storage"
   ],
 
@@ -26,20 +35,9 @@
     "service_worker": "background.js"
   },
 
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons.png",
-      "48": "icons.png"
-    }
-  },
-
   "content_scripts": [
     {
-      "matches": [
-        "https://*/*",
-        "http://*/*"
-      ],
+      "matches": ["https://*/*", "http://*/*"],
       "js": ["contentScript.js"],
       "run_at": "document_idle"
     }
@@ -49,10 +47,18 @@
     {
       "resources": [
         "scan.html",
-        "icons.png",
+        "scan.js",
+        "icon.png",
         "style.css"
       ],
-      "matches": ["<all_urls>"]
+      "matches": ["https://*/*", "http://*/*"]
     }
+  ],
+
+  "options_page": "options.html",
+
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "https://idir.uta.edu/*"
   ]
 }

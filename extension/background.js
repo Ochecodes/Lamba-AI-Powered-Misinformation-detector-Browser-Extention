@@ -1,61 +1,123 @@
-// background.js
-// Handles backend communication, message routing, and caching between popup and content scripts.
+// === background.js ===
+// Manages backend communication, popup interactions,
+// smart article detection, and caching.
 
-const API_BASE_URL = "http://localhost:8000"; // switch to your deployed backend later
-const cache = new Map(); // simple in-memory cache
+const BACKEND_URL = "http://localhost:8000/analyze/"; // Update when deploying
 
-// 🔹 Listen for messages from popup or contentScript
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "analyzeText") {
-    const { text, url } = message;
+// 🗂️ Simple in-memory cache to avoid rescanning same pages
+const cache = new Map();
 
-    if (!text || text.trim().length < 10) {
-      sendResponse({ error: "No sufficient text provided for analysis." });
-      return true;
-    }
+// 🧠 Detect if a URL is likely a news article or homepage
+function isLikelyNewsPage(url) {
+  const newsDomains = [
+    "bbc.com",
+    "cnn.com",
+    "reuters.com",
+    "aljazeera.com",
+    "nytimes.com",
+    "guardian.ng",
+    "vanguardngr.com",
+    "punchng.com",
+    "channels.tv",
+    "saharareporters.com"
+  ];
 
-    const cacheKey = `${url}-${text.slice(0, 100)}`;
-    if (cache.has(cacheKey)) {
-      console.log("[FND] Returning cached result for:", url);
-      sendResponse(cache.get(cacheKey));
-      return true;
-    }
+  const isNewsSite = newsDomains.some(domain => url.includes(domain));
+  const isArticle = /\/\d{4}\/\d{2}\/\d{2}\//.test(url) || url.split("/").length > 4;
 
-    console.log("[FND] Fetching analysis from backend for:", url);
+  return isNewsSite && isArticle;
+}
 
-    // 🔹 Call the backend asynchronously
-    fetch(`${API_BASE_URL}/analyze/`, {
+// 🧩 Fetch metadata from tab to verify if it’s an article
+async function isPageArticle(tabId) {
+  try {
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const metaTag = document.querySelector('meta[property="og:type"]');
+        return metaTag ? metaTag.content : null;
+      }
+    });
+    return result && result.toLowerCase().includes("article");
+  } catch {
+    return false;
+  }
+}
+
+// 🚀 Perform backend analysis
+async function analyzeText(text, url) {
+  // Return cached result if available
+  if (cache.has(url)) {
+    console.log("⚡ Cached result used for:", url);
+    return cache.get(url);
+  }
+
+  try {
+    const response = await fetch(BACKEND_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Client-Time": new Date().toISOString()
       },
       body: JSON.stringify({ text, url })
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Backend returned an error");
-        const data = await response.json();
-        cache.set(cacheKey, data); // store in cache
-        sendResponse(data);
-      })
-      .catch((err) => {
-        console.error("[FND] Backend fetch failed:", err);
-        sendResponse({ error: "Failed to reach backend. Please try again." });
-      });
+    });
 
-    return true; // keep message channel open for async response
+    if (!response.ok) throw new Error(`Backend error ${response.status}`);
+    const data = await response.json();
+
+    // Save to cache for session reuse
+    cache.set(url, data);
+    return data;
+  } catch (err) {
+    console.error("❌ Backend analysis failed:", err);
+    throw err;
   }
+}
 
-  // Optional: allow clearing cache manually if needed
-  if (message.action === "clearCache") {
-    cache.clear();
-    sendResponse({ status: "Cache cleared" });
-  }
+// 🛰️ Message listener
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  (async () => {
+    switch (message.action) {
+      case "analyzeText": {
+        try {
+          const data = await analyzeText(message.text, message.url);
+          sendResponse({ success: true, data });
+        } catch (error) {
+          sendResponse({ success: false, error: error.message });
+        }
+        break;
+      }
 
-  return true;
+      case "autoDetectPage": {
+        const { tab } = sender;
+        if (!tab || !tab.id || !tab.url) return;
+
+        const isNewsCandidate = isLikelyNewsPage(tab.url);
+        const isArticlePage = await isPageArticle(tab.id);
+
+        if (isNewsCandidate || isArticlePage) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: "autoAnalyzePage",
+            url: tab.url
+          });
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+  })();
+
+  return true; // Keep the message channel open for async responses
 });
 
-// Optional debugging
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("[FND] Background service worker initialized.");
+// 🌐 Monitor tab changes for auto-analysis
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url) {
+    chrome.tabs.sendMessage(tabId, {
+      action: "autoDetectPage",
+      url: tab.url
+    });
+  }
 });
