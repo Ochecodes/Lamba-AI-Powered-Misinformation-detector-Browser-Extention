@@ -1,64 +1,33 @@
 {
   "manifest_version": 3,
-  "name": "AI-Powered Fake News Detector",
-  "description": "Analyzes online news content to detect potentially fake or misleading information using AI.",
-  "version": "1.0.0",
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
-  },
-
-  "action": {
-    "default_icon": {
-      "16": "icon.png",
-      "48": "icon.png",
-      "128": "icon.png"
-    },
-    "default_popup": "popup.html",
-    "default_title": "AI Fake News Detector"
-  },
-
+  "name": "Fake News Detector",
+  "description": "AI-powered Chrome extension that detects fake or misleading news.",
+  "version": "3.0",
   "permissions": [
     "activeTab",
     "scripting",
     "storage"
   ],
-
   "host_permissions": [
     "http://localhost:8000/*",
-    "https://*/*",
-    "http://*/*"
+    "https://idir.uta.edu/*"
   ],
-
   "background": {
     "service_worker": "background.js"
   },
-
   "content_scripts": [
     {
-      "matches": ["https://*/*", "http://*/*"],
+      "matches": ["<all_urls>"],
       "js": ["contentScript.js"],
       "run_at": "document_idle"
     }
   ],
-
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "scan.html",
-        "scan.js",
-        "icon.png",
-        "style.css"
-      ],
-      "matches": ["https://*/*", "http://*/*"]
-    }
-  ],
-
-  "options_page": "options.html",
-
-  "host_permissions": [
-    "http://localhost:8000/*",
-    "https://idir.uta.edu/*"
-  ]
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "action": {
+    "default_title": "Fake News Detector"
+  }
 }
