@@ -1,41 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Scanning...</title>
+  <meta charset="UTF-8" />
+  <title>Fake News Detector</title>
   <style>
+    * { box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
+      font-family: "Segoe UI", sans-serif;
+      margin: 0;
       background: #f8f9fa;
-      color: #333;
-      padding: 20px;
-      width: 250px;
+      border-radius: 8px;
+      overflow: hidden;
     }
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+    #popupHeader {
+      background: #0078d4;
+      color: #fff;
+      padding: 10px;
+      text-align: center;
+      cursor: move;
+      font-weight: 600;
+      position: relative;
     }
-    .dot {
-      width: 8px;
-      height: 8px;
+    #closeBtn {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    #loader {
+      display: none;
+      margin: 30px auto;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #ccc;
+      border-top-color: #0078d4;
       border-radius: 50%;
-      background: #007bff;
-      animation: blink 1.2s infinite ease-in-out;
+      animation: spin 1s linear infinite;
     }
-    .dot:nth-child(2) { animation-delay: 0.2s; }
-    .dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes blink {
-      0%, 80%, 100% { opacity: 0; }
-      40% { opacity: 1; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #result {
+      padding: 20px;
+      text-align: center;
     }
+    h3 { margin: 5px 0 10px; }
+    a { color: #0078d4; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <div class="loading">
-    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  <div id="popupHeader">
+    🧠 Fake News Detector
+    <button id="closeBtn">&times;</button>
   </div>
-  <p>Analyzing article...</p>
+  <div id="loader"></div>
+  <div id="result"></div>
+
+  <script src="scan.js"></script>
 </body>
 </html>
