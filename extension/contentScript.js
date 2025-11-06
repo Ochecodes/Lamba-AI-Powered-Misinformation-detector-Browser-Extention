@@ -82,7 +82,7 @@ function createStyledPopup() {
   });
 
   const header = document.createElement("div");
-  header.textContent = "Fake News Detector";
+  header.textContent = "Lamba: Verify News in Realtime";
   Object.assign(header.style, {
     background: "#0f62fe",
     color: "#fff",
