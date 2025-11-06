@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Fake News Detector",
-  "description": "AI-powered Chrome extension that detects fake or misleading news.",
+  "name": "Lamba: verify News on the Go",
+  "description": "Analyze News content and detects misinformation in Realtime.",
   "version": "3.0",
   "permissions": [
     "activeTab",
@@ -28,6 +28,12 @@
     "128": "icon.png"
   },
   "action": {
-    "default_title": "Fake News Detector"
+    "default_title": "Lamba-verify News in realtime"
+  },
+  "web_accessible_resources": [
+  {
+    "resources": ["icon.png"],
+    "matches": ["<all_urls>"]
   }
+]
 }
