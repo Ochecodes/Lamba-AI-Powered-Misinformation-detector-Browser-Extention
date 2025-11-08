@@ -1,17 +1,111 @@
-# Ignore virtual environments
+# # Ignore virtual environments
+# .venv/
+# venv/
+
+# # Ignore Python cache
+# __pycache__/
+# *.pyc
+
+# # Ignore environment files
+# .env
+
+# # Ignore VSCode settings
+# .vscode/
+
+# # Ignore model or data folders if any
+# models/
+# data/
+
+# ===========================================
+# GLOBAL
+# ===========================================
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+.vscode/
+.idea/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ===========================================
+# PYTHON / FASTAPI BACKEND
+# ===========================================
+# Virtual environments
 .venv/
 venv/
+env/
+ENV/
+pip-wheel-metadata/
+.Python
 
-# Ignore Python cache
-__pycache__/
-*.pyc
-
-# Ignore environment files
+# Environment and secret files
 .env
+.env.*
+!.env.example  # Keep example template if needed
 
-# Ignore VSCode settings
-.vscode/
+# Python build files
+build/
+dist/
+*.egg-info/
+.eggs/
+MANIFEST
 
-# Ignore model or data folders if any
-models/
-data/
+# PyInstaller
+*.spec
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints
+
+# SQLite and other databases
+*.db
+*.sqlite3
+
+# ===========================================
+# NODE / CHROME EXTENSION FRONTEND
+# ===========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+pnpm-lock.yaml
+
+# Extension build files
+extension/build/
+extension/dist/
+extension/*.zip
+extension/*.crx
+
+# React/Next.js (if applicable)
+.next/
+out/
+
+# ===========================================
+# MISCELLANEOUS
+# ===========================================
+# OS + Editor
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# Backup & Cache
+.cache/
+*.bak
+*.old
+*.orig
+
+# ===========================================
+# TESTS
+# ===========================================
+.coverage
+htmlcov/
+.tox/
+pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
