@@ -37,14 +37,14 @@ async def analyze(request: Request):
 
         if response.status_code != 200:
             return JSONResponse(
-                {"error": f"ClaimBuster API failed ({response.status_code})"},
+                {"error": f"Lamba API failed ({response.status_code})"},
                 status_code=response.status_code,
             )
 
         cb_data = response.json()
         results = cb_data.get("results", [])
         if not results or "score" not in results[0]:
-            return JSONResponse({"error": "Invalid ClaimBuster response."}, 500)
+            return JSONResponse({"error": "Invalid Lamba response."}, 500)
 
         cb_score = round(results[0]["score"], 2)
 

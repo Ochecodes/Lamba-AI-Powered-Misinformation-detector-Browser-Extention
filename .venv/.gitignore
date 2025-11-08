@@ -1,122 +1,17 @@
-# =========================
-#  GLOBAL GITIGNORE RULES
-# =========================
-# Ignore OS junk
-.DS_Store
-Thumbs.db
-desktop.ini
+# Ignore virtual environments
+.venv/
+venv/
 
 # Ignore Python cache
 __pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
-*.egg-info/
-build/
-dist/
+*.pyc
 
-# Ignore virtual environments
-venv/
-.env/
-.venv/
-env/
-ENV/
-
-# Ignore environment files and API keys
+# Ignore environment files
 .env
-*.env
-.env.local
-.env.*.local
 
-# =========================
-#  BACKEND (FastAPI / Railway)
-# =========================
-# Compiled files
-*.log
-*.sqlite3
-instance/
-.mypy_cache/
-.pytest_cache/
-
-# VSCode / IDE
+# Ignore VSCode settings
 .vscode/
-.idea/
-*.swp
 
-# Railway / Deployment
-railway.json
-# (Railway reads this file automatically, but you can exclude if you don’t want it in repo)
-# comment the above line if you want it tracked
-
-# Ignore backup files
-*.bak
-*.tmp
-
-# =========================
-#  FRONTEND (Chrome Extension)
-# =========================
-# Chrome extension build artifacts
-*.zip
-*.crx
-*.pem
-*.xpi
-
-# Extension local build/test files
-extension/test/
-extension/temp/
-extension/build/
-extension/dist/
-
-# Chrome Extension sensitive files
-extension/.env
-extension/env/
-extension/private/
-extension/secrets/
-
-# Node.js (if you later add a build step)
-node_modules/
-package-lock.json
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-
-# =========================
-#  PROJECT / MISC
-# =========================
-# Ignore backups and cache
-*.bak
-*.old
-*.tmp
-*.cache
-*.log
-
-# Ignore local configs and credentials
-config.json
-secrets.json
-*.key
-*.pem
-*.crt
-*.cert
-
-# =========================
-#  ENVIRONMENT & PLATFORM
-# =========================
-# Local environment overrides
-.local
-*.local
-
-# JetBrains / VSCode
-.idea/
-.vscode/
-*.code-workspace
-
-# =========================
-#  GIT INTERNALS SAFETY
-# =========================
-# Prevent accidental commits of lock files
-!.gitignore
-!README.md
-!requirements.txt
-!Procfile
-!runtime.txt
+# Ignore model or data folders if any
+models/
+data/
