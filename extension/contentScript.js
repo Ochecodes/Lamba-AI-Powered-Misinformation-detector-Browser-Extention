@@ -48,13 +48,22 @@ function getHeadlineElements() {
   });
 }
 
-// --- Map backend rating to simplified label ---
+// --- Map backend rating to simplified label (🔧 FIX APPLIED HERE) ---
 function mapRatingToLabel(backendRating) {
   if (!backendRating || typeof backendRating !== "string") return null;
-  const r = backendRating.toLowerCase();
-  if (r.includes("highly") || r.includes("trust")) return { label: "Verified", emoji: "✅", color: "#0b8a3e" };
-  if (r.includes("possibly") || r.includes("mislead") || r.includes("misleading")) return { label: "Misleading", emoji: "⚠️", color: "#d97706" };
-  if (r.includes("potentially") || r.includes("false") || r.includes("unverified")) return { label: "Unverified", emoji: "❌", color: "#c53030" };
+
+  // Clean emoji characters → normalize string
+  const clean = backendRating.replace(/[^\w\s]/g, "").trim().toLowerCase();
+
+  if (clean.includes("highly") || clean.includes("trust")) {
+    return { label: "Verified", emoji: "✅", color: "#0b8a3e" };
+  }
+  if (clean.includes("possibly") || clean.includes("mislead") || clean.includes("misleading")) {
+    return { label: "Misleading", emoji: "⚠️", color: "#d97706" };
+  }
+  if (clean.includes("potentially") || clean.includes("false") || clean.includes("unverified")) {
+    return { label: "Unverified", emoji: "❌", color: "#c53030" };
+  }
   return { label: backendRating, emoji: "", color: "#444" };
 }
 
@@ -156,7 +165,7 @@ function createStyledPopup() {
     autoCloseTimer = setTimeout(() => {
       wrapper.style.opacity = "0";
       setTimeout(() => wrapper.remove(), 400);
-    }, 60000); // 1 min
+    }, 60000);
   }
 
   wrapper.addEventListener("mouseenter", () => clearTimeout(autoCloseTimer));
@@ -279,7 +288,7 @@ function injectIconsForHeadlines() {
   const cached = getCachedResult(url);
 
   if (isArticlePage()) {
-    injectIconsForHeadlines(); // show icon beside main headline too
+    injectIconsForHeadlines();
 
     if (cached) {
       const p = createStyledPopup();
