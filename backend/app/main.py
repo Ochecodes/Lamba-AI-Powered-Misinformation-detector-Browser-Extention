@@ -192,8 +192,32 @@ def analyze(request: AnalyzeRequest):
 
         response = requests.get(GOOGLE_SEARCH_URL, params=params, timeout=10)
 
+<<<<<<< HEAD
         if response.status_code == 200:
             data = response.json()
+=======
+        cb_url = f"https://idir.uta.edu/claimbuster/api/v2/score/text/{text}"
+        headers = {"x-api-key": CLAIMBUSTER_API_KEY}
+        response = requests.get(cb_url, headers=headers, timeout=10)
+
+        if response.status_code != 200:
+            return JSONResponse(
+                {"error": f"Lamba API failed ({response.status_code})"},
+                status_code=response.status_code,
+            )
+
+        cb_data = response.json()
+        results = cb_data.get("results", [])
+        if not results or "score" not in results[0]:
+            return JSONResponse({"error": "Invalid Lamba response."}, 500)
+
+        cb_score = round(results[0]["score"], 2)
+
+        if cb_score >= 0.75:
+            rating = "✅ Highly Trustworthy"
+        elif cb_score >= 0.5:
+            rating = "⚠️ Possibly Misleading"
+>>>>>>> 19a821839cab19e8c9f6cda28d3b8fc80419814c
         else:
             data = None
 

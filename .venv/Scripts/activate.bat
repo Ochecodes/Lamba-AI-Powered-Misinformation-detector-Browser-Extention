@@ -8,7 +8,11 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
+<<<<<<< HEAD
 set VIRTUAL_ENV=c:\Users\UJAH\Desktop\AI-Powered-fake-news-detector-Chrome-Extension\.venv
+=======
+set VIRTUAL_ENV=C:\Users\UJAH\Desktop\AI-Powered-fake-news-detector-Chrome-Extension\.venv
+>>>>>>> 19a821839cab19e8c9f6cda28d3b8fc80419814c
 
 if not defined PROMPT set PROMPT=$P$G
 
